@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prose — AI Grammar Corrector</title>
+  <meta name="description" content="Correct spelling and grammar with elegance. Powered by LanguageTool." />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+      <text y='26' font-size='28'>✍</text>
+    </svg>" />
+</head>
+<body>
+
+  <!-- Ambient orbs -->
+  <div class="ambient ambient-1" aria-hidden="true"></div>
+  <div class="ambient ambient-2" aria-hidden="true"></div>
+  <div class="ambient ambient-3" aria-hidden="true"></div>
+
+  <div class="app-wrapper">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header role="banner">
+      <div class="logo">
+        <span class="logo-mark">Prose</span>
+        <span class="logo-sub">Grammar Studio</span>
+      </div>
+      <span class="header-badge" title="Powered by LanguageTool API">AI-Powered</span>
+    </header>
+
+    <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <span class="hero-eyebrow">Intelligent Language Analysis</span>
+      <h1 class="hero-title" id="heroTitle">
+        Write with <em>clarity</em><br>and confidence
+      </h1>
+      <p class="hero-desc">
+        Paste any sentence or paragraph. Prose detects spelling mistakes
+        and grammatical errors — instantly, with elegance.
+      </p>
+    </section>
+
+    <!-- ── Main content ───────────────────────────────────────────────────── -->
+    <main class="content" aria-label="Grammar correction tool">
+
+      <!-- Error banner (hidden by default) -->
+      <div id="errorBanner" class="error-banner" role="alert" style="display:none;" aria-live="polite">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="errorMsg"></span>
+      </div>
+
+      <!-- ── Input card ──────────────────────────────────────────────────── -->
+      <div class="card input-card" role="region" aria-label="Text input">
+        <div class="card-label">
+          <span class="card-label-text">Your Text</span>
+          <span class="char-counter" id="charCounter" aria-live="polite">0 / 5,000</span>
+        </div>
+
+        <textarea
+          id="inputText"
+          aria-label="Enter text to check for grammar and spelling errors"
+          placeholder="Type or paste your sentence here… e.g. &quot;She go to school every day.&quot;"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          rows="7"
+        ></textarea>
+
+        <div class="input-actions">
+          <div class="lang-selector">
+            <label for="langSelect">Language:</label>
+            <select id="langSelect" aria-label="Select language for grammar check">
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="en-AU">English (AU)</option>
+              <option value="de-DE">Deutsch</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="pt-BR">Português (BR)</option>
+              <option value="nl">Nederlands</option>
+              <option value="it">Italiano</option>
+              <option value="pl-PL">Polski</option>
+            </select>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn-ghost" id="btnClear" type="button" aria-label="Clear text input">
+              Clear
+            </button>
+            <button class="btn-correct" id="btnCorrect" type="button"
+                    aria-label="Check text for grammar and spelling errors">
+              Correct
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <p style="padding: 0 20px 14px; font-size:.72rem; color:var(--text-muted)">
+          Tip: Press <kbd style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:inherit">⌘ Return</kbd>
+          or <kbd style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:inherit">Ctrl Enter</kbd> to check.
+        </p>
+      </div>
+
+      <!-- ── Results section ────────────────────────────────────────────── -->
+      <section id="resultsSection" aria-label="Correction results" aria-live="polite">
+
+        <!-- Stats bar -->
+        <div class="stats-bar" id="statsBar" aria-label="Error statistics"></div>
+
+        <!-- Main results grid -->
+        <div class="results-grid">
+
+          <!-- Left column: Original + Corrected panels -->
+          <div>
+            <div class="card" role="region" aria-label="Annotated original text">
+              <div style="padding:16px 20px 0">
+                <div class="panel-label">Original Text</div>
+              </div>
+              <div class="text-panel" id="originalPanel" role="presentation">
+                <!-- Annotated text rendered here -->
+              </div>
+
+              <!-- Divider -->
+              <div class="panel-divider" aria-hidden="true">
+                <div class="panel-divider-line"></div>
+                <span class="panel-divider-label">Auto-corrected</span>
+                <div class="panel-divider-line"></div>
+              </div>
+
+              <div style="padding:14px 20px 4px">
+                <div class="panel-label">Corrected Text</div>
+              </div>
+              <div class="corrected-text" id="correctedPanel" role="region"
+                   aria-label="Auto-corrected text output">
+                <!-- Corrected text rendered here -->
+              </div>
+
+              <div class="copy-row">
+                <button class="btn-copy" id="btnCopy" type="button"
+                        aria-label="Copy corrected text to clipboard">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copy corrected
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column: Issue sidebar -->
+          <aside role="complementary" aria-label="List of detected issues">
+            <div class="sidebar-title">Detected Issues</div>
+            <div class="issue-list" id="issueList">
+              <!-- Issue cards rendered here -->
+            </div>
+          </aside>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer role="contentinfo">
+      Grammar analysis powered by <a href="https://languagetool.org" target="_blank"
+        rel="noopener noreferrer">LanguageTool</a> ·
+      Built with ASP.NET Core 8 · &copy; 2025 Prose Studio
+    </footer>
+
+  </div><!-- /.app-wrapper -->
+
+  <script src="/app.js"></script>
+</body>
+</html>

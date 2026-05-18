@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio local state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Rider / JetBrains
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.cache
+
+# Local environment files
+.env
+.env.*
+secrets.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
