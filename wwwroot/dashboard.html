@@ -5,12 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Prose Grammar Corrector</title>
     <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+        <text y='26' font-size='28'>✍</text>
+      </svg>" />
 </head>
 <body>
+  <!-- Ambient orbs -->
+  <div class="ambient ambient-1" aria-hidden="true"></div>
+  <div class="ambient ambient-2" aria-hidden="true"></div>
+  <div class="ambient ambient-3" aria-hidden="true"></div>
+
+  <div class="app-wrapper">
     <div class="dashboard-container">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2><a href="/" class="sidebar-logo">✍ Prose</a></h2>
+                <h2><a href="/" class="sidebar-logo">
+                    <span class="logo-mark">Prose</span>
+                    <span class="logo-sub">Studio</span>
+                </a></h2>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showSection('profile', event)">
@@ -164,9 +177,16 @@
                 </div>
             </section>
         </main>
-    </div>
+        </div>
+        <!-- End dashboard-container -->
 
-    <div id="paymentModal" class="modal" style="display: none;">
+        <footer role="contentinfo">
+          Grammar analysis powered by <a href="https://languagetool.org" target="_blank"
+            rel="noopener noreferrer">LanguageTool</a> ·
+          Built with ASP.NET Core 10 · &copy; 2025 Prose Studio
+        </footer>
+
+        <div id="paymentModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Complete Your Upgrade</h2>
@@ -186,5 +206,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/dashboard.js"></script>
+  </div>
+  <!-- End app-wrapper -->
 </body>
 </html>

@@ -5,13 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authentication - Prose Grammar Corrector</title>
     <link rel="stylesheet" href="/css/auth.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+        <text y='26' font-size='28'>✍</text>
+      </svg>" />
 </head>
 <body>
+  <!-- Ambient orbs -->
+  <div class="ambient ambient-1" aria-hidden="true"></div>
+  <div class="ambient ambient-2" aria-hidden="true"></div>
+  <div class="ambient ambient-3" aria-hidden="true"></div>
+
+  <div class="app-wrapper">
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header role="banner">
+      <div class="logo">
+        <span class="logo-mark">Prose</span>
+        <span class="logo-sub">Grammar Studio</span>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn-header btn-header-ghost">← Back to Home</a>
+      </div>
+    </header>
+
     <div class="auth-container">
         <div class="auth-card">
-            <div class="auth-header">
-                <h1>✍ Prose</h1>
-                <p>AI Grammar Correction Tool</p>
+            <div class="auth-card-header">
+                <h1>Sign In or Create Account</h1>
+                <p>Correct your grammar with elegance</p>
             </div>
 
             <!-- Login Form -->
@@ -28,7 +49,6 @@
                 <div id="loginError" class="error-message"></div>
                 <button type="submit" class="btn btn-primary">Sign In</button>
                 <p class="auth-toggle">Don't have an account? <a href="#" onclick="toggleForms(event)">Sign Up</a></p>
-                <p class="auth-toggle"><a href="/">← Back to Grammar Checker</a></p>
             </form>
 
             <!-- Signup Form -->
@@ -54,7 +74,6 @@
                 <div id="signupError" class="error-message"></div>
                 <button type="submit" class="btn btn-primary">Create Account</button>
                 <p class="auth-toggle">Already have an account? <a href="#" onclick="toggleForms(event)">Sign In</a></p>
-                <p class="auth-toggle"><a href="/">← Back to Grammar Checker</a></p>
             </form>
 
             <!-- Success Message -->
@@ -83,6 +102,9 @@
             </div>
         </div>
     </div>
+    <!-- End auth-container -->
+    </div>
+    <!-- End app-wrapper -->
 
     <script>
         const API_BASE = '/api';
@@ -211,5 +233,6 @@
             window.location.href = getReturnUrl();
         }
     </script>
+  </div>
 </body>
 </html>
