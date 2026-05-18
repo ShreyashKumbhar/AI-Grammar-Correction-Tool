@@ -40,11 +40,11 @@ dotnet restore
 dotnet run
 ```
 
-The app starts on **http://localhost:5000** (or the port shown in the terminal).
+The app starts on **https://localhost:50866** and **http://localhost:50867** (configured in `Properties/launchSettings.json`).
 
 ### 3. Open in browser
 
-Navigate to `http://localhost:5000` — the frontend is served directly from `wwwroot/`.
+Navigate to `https://localhost:50866` — the frontend is served from `wwwroot/` directory.
 
 ---
 

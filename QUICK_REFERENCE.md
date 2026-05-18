@@ -4,7 +4,7 @@
 
 ```powershell
 # Navigate to project
-cd C:\Users\Admin\source\repos\GrammarCorrector\
+cd C:\Users\Admin\Desktop\GrammarCorrector\
 
 # Build
 dotnet build
@@ -81,16 +81,25 @@ API Response: { originalText: "...", correctedText: "She goes to school every da
 
 ---
 
-## 🔧 Key Files Modified
+## 🔧 Project Structure
 
-| File | Change | Why |
-|------|--------|-----|
-| Program.cs | Added JSON camelCase config | Frontend expects camelCase properties |
-| Program.cs | Added static files from project root | CSS/JS files are in project root, not wwwroot |
-| index.html | Fixed `/css/style.css` → `/style.css` | File is in root, not in css/ subdirectory |
-| index.html | Fixed `/js/app.js` → `/app.js` | File is in root, not in js/ subdirectory |
-| app.js | Refactored DOM initialization | Wait for page load before accessing DOM |
-| app.js | Added console logging | Debug API calls and initialization |
+The project follows ASP.NET Core conventions with proper organization:
+
+| Directory | Contents |
+|-----------|----------|
+| `Controllers/` | REST API controllers (GrammarController.cs) |
+| `Models/` | Data models (CorrectionRequest/Response.cs) |
+| `Services/` | Business logic (IGrammarService, GrammarService.cs) |
+| `wwwroot/` | Static web assets |
+| `wwwroot/css/` | Stylesheets (style.css) |
+| `wwwroot/js/` | JavaScript (app.js) |
+| `Properties/` | Launch settings (launchSettings.json) |
+
+**Key configurations:**
+- **Program.cs:** Uses `/wwwroot` for static files and SPA fallback
+- **index.html:** References assets via `/css/style.css` and `/js/app.js`
+- **app.js:** Initializes on `DOMContentLoaded` with console logging
+- **JSON responses:** Configured to use camelCase for frontend compatibility
 
 ---
 
