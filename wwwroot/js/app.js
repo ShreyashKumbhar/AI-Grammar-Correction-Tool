@@ -5,7 +5,7 @@
 
 'use strict';
 
-const API_BASE = '/api/grammar';
+const GRAMMAR_API = '/api/grammar';
 const MAX_CHARS = 5000;
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -16,6 +16,7 @@ let isLoading    = false;
 let inputText, charCounter, langSelect, btnCorrect, btnClear, btnCopy;
 let resultsSection, originalPanel, correctedPanel, issueList, statsBar;
 let errorBanner, errorMsg;
+let authOverlay, authUserBar, authGuestBar, usageBadge;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
@@ -35,6 +36,10 @@ function init() {
   statsBar       = document.getElementById('statsBar');
   errorBanner    = document.getElementById('errorBanner');
   errorMsg       = document.getElementById('errorMsg');
+  authOverlay    = document.getElementById('authOverlay');
+  authUserBar    = document.getElementById('authUserBar');
+  authGuestBar   = document.getElementById('authGuestBar');
+  usageBadge     = document.getElementById('usageBadge');
 
   console.log('Initializing Grammar Corrector app...');
   console.log('DOM elements found:', {
@@ -57,7 +62,79 @@ function init() {
 
   bindEvents();
   updateCharCounter();
+  initAuthUI();
   console.log('Initialization complete');
+}
+
+// ── Authentication UI ─────────────────────────────────────────────────────────
+function initAuthUI() {
+  updateAuthUI();
+
+  document.getElementById('btnSignOut')?.addEventListener('click', () => logout());
+}
+
+function updateAuthUI() {
+  const loggedIn = isAuthenticated();
+  const user = getCurrentUser();
+
+  authGuestBar?.classList.toggle('hidden', loggedIn);
+  authUserBar?.classList.toggle('hidden', !loggedIn);
+  authOverlay?.classList.toggle('hidden', loggedIn);
+
+  if (inputText) inputText.disabled = !loggedIn;
+  if (langSelect) langSelect.disabled = !loggedIn;
+  if (btnCorrect) btnCorrect.disabled = !loggedIn;
+  if (btnClear) btnClear.disabled = !loggedIn;
+
+  if (loggedIn && user) {
+    const nameEl = document.getElementById('userDisplayName');
+    const tierEl = document.getElementById('userTierBadge');
+    if (nameEl) nameEl.textContent = user.fullName || user.email;
+    if (tierEl) {
+      const tier = user.subscriptionTier || 'Free';
+      tierEl.textContent = tier;
+      tierEl.className = `tier-badge tier-${tier.toLowerCase()}`;
+    }
+    loadQuotaStatus();
+  } else if (usageBadge) {
+    usageBadge.textContent = '';
+    usageBadge.classList.add('hidden');
+  }
+}
+
+async function loadQuotaStatus() {
+  if (!usageBadge || !isAuthenticated()) return;
+
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/subscription/quota-status`);
+    if (!res?.ok) return;
+
+    const data = await res.json();
+    if (data.isUnlimited) {
+      usageBadge.textContent = 'Unlimited';
+    } else {
+      usageBadge.textContent = `${data.used ?? 0} / ${data.limit ?? 500} this month`;
+    }
+    usageBadge.classList.remove('hidden');
+
+    if (data.isExceeded) {
+      usageBadge.classList.add('quota-exceeded');
+      if (btnCorrect) btnCorrect.disabled = true;
+    } else {
+      usageBadge.classList.remove('quota-exceeded');
+      if (btnCorrect && !isLoading) btnCorrect.disabled = false;
+    }
+  } catch (err) {
+    console.warn('Could not load quota status:', err);
+  }
+}
+
+function requireAuth() {
+  if (isAuthenticated()) return true;
+
+  showError('Please sign in or create an account to use the grammar checker.');
+  authOverlay?.classList.remove('hidden');
+  return false;
 }
 
 // ── Event bindings ────────────────────────────────────────────────────────────
@@ -73,7 +150,7 @@ function bindEvents() {
 
   btnCorrect.addEventListener('click', triggerCheck);
   btnClear.addEventListener('click', clearAll);
-  btnCopy.addEventListener('click', copyResult);
+  btnCopy?.addEventListener('click', copyResult);
 }
 
 // ── Input handling ────────────────────────────────────────────────────────────
@@ -92,6 +169,7 @@ function updateCharCounter() {
 // ── API call ──────────────────────────────────────────────────────────────────
 async function triggerCheck() {
   if (isLoading) return;
+  if (!requireAuth()) return;
 
   const text = inputText.value.trim();
   if (!text) {
@@ -109,26 +187,43 @@ async function triggerCheck() {
   showSkeletonResults();
 
   try {
-    console.log('Making API call to:', `${API_BASE}/check`);
+    console.log('Making API call to:', `${GRAMMAR_API}/check`);
     console.log('Payload:', { text, language: langSelect.value });
 
-    const res = await fetch(`${API_BASE}/check`, {
+    const res = await authenticatedFetch(`${GRAMMAR_API}/check`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ text, language: langSelect.value }),
       signal:  AbortSignal.timeout(20000)
     });
 
+    if (!res) return;
+
     console.log('Response status:', res.status);
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      let errorMsg = `HTTP ${res.status}`;
+      try {
+        const err = await res.json();
+        errorMsg = err.error || err.message || errorMsg;
+      } catch (parseErr) {
+        // Failed to parse error response as JSON
+        try {
+          const textErr = await res.text();
+          console.error('Response text:', textErr);
+          if (textErr) {
+            errorMsg = textErr.substring(0, 200); // Limit error message length
+          }
+        } catch (textErr) {
+          console.error('Failed to read response:', textErr);
+        }
+      }
+      throw new Error(errorMsg);
     }
 
     lastResponse = await res.json();
     console.log('API Response:', lastResponse);
     renderResults(lastResponse);
+    loadQuotaStatus();
 
   } catch (err) {
     console.error('API Error:', err);
@@ -397,6 +492,11 @@ async function copyResult() {
 
 // ── Clear ─────────────────────────────────────────────────────────────────────
 function clearAll() {
+  if (!isAuthenticated()) {
+    requireAuth();
+    return;
+  }
+
   inputText.value = '';
   updateCharCounter();
   resultsSection.classList.remove('visible');
@@ -408,7 +508,7 @@ function clearAll() {
 // ── Loading state ─────────────────────────────────────────────────────────────
 function setLoading(on) {
   isLoading = on;
-  btnCorrect.disabled = on;
+  btnCorrect.disabled = on || !isAuthenticated();
 
   if (on) {
     btnCorrect.innerHTML = `

@@ -79,11 +79,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Apply pending database migrations
+// Ensure database schema exists (migrations or model-based create)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await DatabaseInitializer.InitializeAsync(db, logger);
 }
 
 // Configure static files to serve from wwwroot directory

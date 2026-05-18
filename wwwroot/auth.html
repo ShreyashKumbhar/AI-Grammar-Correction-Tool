@@ -27,7 +27,8 @@
                 </div>
                 <div id="loginError" class="error-message"></div>
                 <button type="submit" class="btn btn-primary">Sign In</button>
-                <p class="auth-toggle">Don't have an account? <a href="#" onclick="toggleForms()">Sign Up</a></p>
+                <p class="auth-toggle">Don't have an account? <a href="#" onclick="toggleForms(event)">Sign Up</a></p>
+                <p class="auth-toggle"><a href="/">← Back to Grammar Checker</a></p>
             </form>
 
             <!-- Signup Form -->
@@ -52,13 +53,14 @@
                 </div>
                 <div id="signupError" class="error-message"></div>
                 <button type="submit" class="btn btn-primary">Create Account</button>
-                <p class="auth-toggle">Already have an account? <a href="#" onclick="toggleForms()">Sign In</a></p>
+                <p class="auth-toggle">Already have an account? <a href="#" onclick="toggleForms(event)">Sign In</a></p>
+                <p class="auth-toggle"><a href="/">← Back to Grammar Checker</a></p>
             </form>
 
             <!-- Success Message -->
             <div id="successMessage" class="success-message" style="display: none;">
                 <h2>Welcome! 🎉</h2>
-                <p>Redirecting to your dashboard...</p>
+                <p>Redirecting to the grammar checker...</p>
             </div>
         </div>
 
@@ -85,12 +87,24 @@
     <script>
         const API_BASE = '/api';
 
-        function toggleForms() {
+        function getReturnUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const ret = params.get('return');
+            return ret && ret.startsWith('/') ? ret : '/';
+        }
+
+        function toggleForms(e) {
+            if (e) e.preventDefault();
             const loginForm = document.getElementById('loginForm');
             const signupForm = document.getElementById('signupForm');
             loginForm.classList.toggle('active');
             signupForm.classList.toggle('active');
             clearMessages();
+        }
+
+        function showSignupForm() {
+            document.getElementById('loginForm').classList.remove('active');
+            document.getElementById('signupForm').classList.add('active');
         }
 
         function clearMessages() {
@@ -126,8 +140,8 @@
                 // Show success and redirect
                 showSuccess();
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 1500);
+                    window.location.href = getReturnUrl();
+                }, 1200);
             } catch (error) {
                 errorDiv.textContent = 'An error occurred. Please try again.';
                 console.error('Login error:', error);
@@ -175,8 +189,8 @@
                 // Show success and redirect
                 showSuccess();
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 1500);
+                    window.location.href = getReturnUrl();
+                }, 1200);
             } catch (error) {
                 errorDiv.textContent = 'An error occurred. Please try again.';
                 console.error('Signup error:', error);
@@ -189,9 +203,12 @@
             document.getElementById('successMessage').style.display = 'block';
         }
 
-        // Check if already logged in
+        if (window.location.hash === '#signup') {
+            showSignupForm();
+        }
+
         if (localStorage.getItem('token')) {
-            window.location.href = '/dashboard.html';
+            window.location.href = getReturnUrl();
         }
     </script>
 </body>

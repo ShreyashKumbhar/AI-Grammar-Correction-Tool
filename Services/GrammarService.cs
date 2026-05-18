@@ -91,14 +91,37 @@ public class GrammarService : IGrammarService
             ["enabledOnly"] = "false"
         });
 
-        var response = await _http.PostAsync(endpoint, form, ct);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            var response = await _http.PostAsync(endpoint, form, ct);
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var ltResponse = JsonSerializer.Deserialize<LanguageToolResponse>(json, _jsonOpts)
-                         ?? new LanguageToolResponse();
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError(
+                    "LanguageTool API returned status {StatusCode}: {Response}",
+                    response.StatusCode,
+                    responseContent);
+                throw new HttpRequestException(
+                    $"LanguageTool API returned {(int)response.StatusCode}: {response.ReasonPhrase}");
+            }
 
-        return ltResponse.Matches.Select(m => MapMatch(text, m)).ToList();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            var ltResponse = JsonSerializer.Deserialize<LanguageToolResponse>(json, _jsonOpts)
+                             ?? new LanguageToolResponse();
+
+            return ltResponse.Matches.Select(m => MapMatch(text, m)).ToList();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error calling LanguageTool API: {Message}", ex.Message);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize LanguageTool response: {Message}", ex.Message);
+            throw;
+        }
     }
 
     private static LanguageMatch MapMatch(string text, LTMatch m)

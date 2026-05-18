@@ -71,6 +71,8 @@ public class ApplicationDbContext : DbContext
         SeedSubscriptionTiers(modelBuilder);
     }
 
+    private static readonly DateTime SeedTimestamp = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private static void SeedSubscriptionTiers(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Subscription>().HasData(
@@ -82,8 +84,8 @@ public class ApplicationDbContext : DbContext
                 MonthlyPrice = 0,
                 Description = "Free tier with 500 corrections per month",
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = SeedTimestamp,
+                UpdatedAt = SeedTimestamp
             },
             new Subscription
             {
@@ -92,10 +94,10 @@ public class ApplicationDbContext : DbContext
                 MonthlyQuota = null,
                 MonthlyPrice = 9.99m,
                 Description = "Unlimited corrections with priority support",
-                StripePriceId = "price_unlimited_tier", // This should be set to actual Stripe price ID
+                StripePriceId = "price_unlimited_tier",
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = SeedTimestamp,
+                UpdatedAt = SeedTimestamp
             }
         );
     }

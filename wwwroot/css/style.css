@@ -176,6 +176,144 @@ header {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.auth-guest-bar,
+.auth-user-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hidden { display: none !important; }
+
+.btn-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  border-radius: 100px;
+  font-size: .78rem;
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  font-family: inherit;
+}
+
+.btn-header:hover {
+  border-color: rgba(200 169 110 / .35);
+  color: var(--gold-bright);
+}
+
+.btn-header-primary {
+  background: linear-gradient(135deg, var(--gold) 0%, #a8874a 100%);
+  border-color: transparent;
+  color: #1a1408;
+}
+
+.btn-header-primary:hover {
+  color: #0f0c06;
+  box-shadow: 0 0 20px var(--gold-glow);
+}
+
+.btn-header-ghost {
+  color: var(--text-secondary);
+}
+
+.user-name {
+  font-size: .82rem;
+  color: var(--text-secondary);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tier-badge {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+}
+
+.tier-free {
+  color: var(--text-secondary);
+  background: rgba(255 255 255 / .04);
+}
+
+.tier-unlimited {
+  color: var(--gold-bright);
+  background: var(--gold-dim);
+  border-color: rgba(200 169 110 / .3);
+}
+
+.usage-badge {
+  font-size: .72rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: rgba(255 255 255 / .04);
+  border: 1px solid var(--border);
+}
+
+.usage-badge.quota-exceeded {
+  color: var(--error-text);
+  border-color: rgba(232 93 117 / .35);
+}
+
+.auth-overlay {
+  margin-bottom: 20px;
+}
+
+.auth-overlay-card {
+  padding: 28px 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(200 169 110 / .25);
+  background: linear-gradient(135deg, rgba(200 169 110 / .08) 0%, rgba(123 108 246 / .06) 100%);
+  text-align: center;
+}
+
+.auth-overlay-card h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.auth-overlay-card p {
+  font-size: .9rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0 auto 20px;
+}
+
+.auth-overlay-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.input-card:has(textarea:disabled) {
+  opacity: .72;
+}
+
 @keyframes pulse-dot {
   0%,100% { opacity: 1; transform: scale(1); }
   50%      { opacity: .5; transform: scale(.8); }

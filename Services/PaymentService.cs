@@ -153,7 +153,7 @@ public class PaymentService : IPaymentService
                 Status = PaymentStatus.Completed,
                 SubscriptionTier = tier,
                 PaymentDate = DateTime.UtcNow,
-                InvoiceReference = paymentIntent.InvoiceId,
+                InvoiceReference = paymentIntent.Id,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -257,13 +257,13 @@ public class PaymentService : IPaymentService
 
             switch (stripeEvent.Type)
             {
-                case Events.PaymentIntentSucceeded:
+                case "payment_intent.succeeded":
                     return await HandlePaymentSucceeded(stripeEvent.Data.Object as PaymentIntent);
 
-                case Events.PaymentIntentPaymentFailed:
+                case "payment_intent.payment_failed":
                     return await HandlePaymentFailed(stripeEvent.Data.Object as PaymentIntent);
 
-                case Events.CustomerSubscriptionDeleted:
+                case "customer.subscription.deleted":
                     return await HandleSubscriptionCancelled(stripeEvent.Data.Object as StripeSubscription);
 
                 default:

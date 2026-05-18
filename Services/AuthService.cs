@@ -101,11 +101,13 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during user registration");
-            return new AuthResult
+            var message = ex switch
             {
-                Success = false,
-                Message = "An error occurred during registration. Please try again."
+                Microsoft.EntityFrameworkCore.DbUpdateException =>
+                    "Could not save your account. If this persists, restart the app so the database schema can be created.",
+                _ => "An error occurred during registration. Please try again."
             };
+            return new AuthResult { Success = false, Message = message };
         }
     }
 

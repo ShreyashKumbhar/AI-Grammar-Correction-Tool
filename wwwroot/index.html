@@ -26,7 +26,22 @@
         <span class="logo-mark">Prose</span>
         <span class="logo-sub">Grammar Studio</span>
       </div>
-      <span class="header-badge" title="Powered by LanguageTool API">AI-Powered</span>
+      <div class="header-actions">
+        <span class="header-badge" title="Powered by LanguageTool API">AI-Powered</span>
+
+        <div id="authGuestBar" class="auth-guest-bar">
+          <a href="/auth.html?return=/" class="btn-header btn-header-ghost">Sign In</a>
+          <a href="/auth.html?return=/#signup" class="btn-header btn-header-primary">Sign Up</a>
+        </div>
+
+        <div id="authUserBar" class="auth-user-bar hidden">
+          <span id="usageBadge" class="usage-badge hidden" title="Monthly correction usage"></span>
+          <span id="userDisplayName" class="user-name"></span>
+          <span id="userTierBadge" class="tier-badge tier-free"></span>
+          <a href="/dashboard.html" class="btn-header btn-header-ghost">Dashboard</a>
+          <button type="button" id="btnSignOut" class="btn-header btn-header-ghost">Sign Out</button>
+        </div>
+      </div>
     </header>
 
     <!-- ── Hero ───────────────────────────────────────────────────────────── -->
@@ -51,6 +66,18 @@
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         <span id="errorMsg"></span>
+      </div>
+
+      <!-- Auth gate (shown when signed out) -->
+      <div id="authOverlay" class="auth-overlay" role="dialog" aria-labelledby="authOverlayTitle">
+        <div class="auth-overlay-card">
+          <h2 id="authOverlayTitle">Sign in to use Prose</h2>
+          <p>Create a free account to check grammar and spelling. Free tier includes 500 corrections per month.</p>
+          <div class="auth-overlay-actions">
+            <a href="/auth.html?return=/" class="btn-header btn-header-primary">Sign In</a>
+            <a href="/auth.html?return=/#signup" class="btn-header btn-header-ghost">Create Account</a>
+          </div>
+        </div>
       </div>
 
       <!-- ── Input card ──────────────────────────────────────────────────── -->
@@ -179,6 +206,7 @@
 
   </div><!-- /.app-wrapper -->
 
+  <script src="/js/auth.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

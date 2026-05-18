@@ -22,12 +22,14 @@ function getCurrentUser() {
 }
 
 // Logout
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/auth.html';
-    }
+function logout(skipConfirm = false) {
+    if (!skipConfirm && !confirm('Are you sure you want to logout?')) return;
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    const onAuthPage = window.location.pathname.endsWith('auth.html');
+    window.location.href = onAuthPage ? '/auth.html' : '/';
 }
 
 // Redirect to auth page if not authenticated

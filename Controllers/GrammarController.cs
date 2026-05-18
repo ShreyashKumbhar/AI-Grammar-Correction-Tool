@@ -46,14 +46,12 @@ public class GrammarController : ControllerBase
         if (request.Text.Length > 5000)
             return BadRequest(new { error = "Text must be 5,000 characters or fewer." });
 
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdClaim?.Value, out var userId))
+            return Unauthorized(new { error = "Authentication required. Please sign in." });
+
         try
         {
-            // Get user ID from token
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(userIdClaim?.Value, out var userId))
-                return Unauthorized(new { error = "Invalid user ID in token." });
-
-            // Check quota
             var isQuotaExceeded = await _subscriptionService.IsQuotaExceededAsync(userId);
             if (isQuotaExceeded)
             {
@@ -61,10 +59,8 @@ public class GrammarController : ControllerBase
                     new { error = "You have exceeded your monthly correction quota. Upgrade to Unlimited to continue." });
             }
 
-            // Process grammar check
             var result = await _grammarService.CheckTextAsync(request, ct);
 
-            // Increment usage metrics
             var errorCount = result.Matches?.Count ?? 0;
             await _subscriptionService.IncrementUsageAsync(userId, request.Text.Length, errorCount);
 
