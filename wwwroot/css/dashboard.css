@@ -43,10 +43,14 @@ body {
 
 .sidebar-header h2 {
     font-size: 1.5em;
+    margin-bottom: 40px;
+}
+
+.sidebar-logo {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 40px;
+    text-decoration: none;
 }
 
 .sidebar-nav {

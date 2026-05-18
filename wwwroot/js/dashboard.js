@@ -11,29 +11,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Navigation
-function showSection(sectionId) {
-    // Hide all sections
+function showSection(sectionId, evt) {
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
     });
 
-    // Remove active class from nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
 
-    // Show selected section
     document.getElementById(sectionId).classList.add('active');
 
-    // Add active class to clicked nav item
-    event.target.closest('.nav-item').classList.add('active');
+    const navItem = evt?.target?.closest('.nav-item');
+    if (navItem) navItem.classList.add('active');
 
-    // Update page title
     const titles = {
-        'editor': 'Grammar Checker',
-        'subscription': 'Manage Subscription',
-        'analytics': 'Usage Analytics',
-        'profile': 'Account Settings'
+        profile: 'Account Settings',
+        activity: 'Activity',
+        subscription: 'Manage Subscription'
     };
     document.getElementById('pageTitle').textContent = titles[sectionId] || 'Dashboard';
 }
@@ -171,71 +166,6 @@ async function loadPaymentHistory() {
     }
 }
 
-// Grammar check
-async function checkGrammar() {
-    const text = document.getElementById('textInput').value;
-    const language = document.getElementById('languageSelect').value;
-
-    if (!text.trim()) {
-        showNotification('Please enter some text', 'error');
-        return;
-    }
-
-    try {
-        const response = await authenticatedFetch(`${API_BASE}/grammar/check`, {
-            method: 'POST',
-            body: JSON.stringify({ text, language })
-        });
-
-        if (!response) return;
-
-        if (response.status === 429) {
-            showNotification('You have exceeded your monthly quota. Upgrade to continue.', 'error');
-            return;
-        }
-
-        if (!response.ok) {
-            const data = await response.json();
-            showNotification(data.error || 'Error checking grammar', 'error');
-            return;
-        }
-
-        const result = await response.json();
-        displayCorrections(result);
-        loadSubscriptionStatus(); // Refresh quota
-    } catch (error) {
-        console.error('Error checking grammar:', error);
-        showNotification('An error occurred', 'error');
-    }
-}
-
-// Display corrections
-function displayCorrections(result) {
-    const correctionsList = document.getElementById('correctionsList');
-    const correctedText = document.getElementById('correctedText');
-    const correctedTextContent = document.getElementById('correctedTextContent');
-
-    if (!result.matches || result.matches.length === 0) {
-        correctionsList.innerHTML = '<p class="placeholder">No issues found! ✓</p>';
-        correctedText.style.display = 'none';
-        return;
-    }
-
-    correctionsList.innerHTML = result.matches.map(match => `
-        <div class="correction-item ${match.issueType || 'info'}">
-            <div class="correction-title">${match.shortMessage || 'Issue'}</div>
-            <div class="correction-message">
-                <strong>"${match.originalText}"</strong> → 
-                ${match.suggestions?.length > 0 ? match.suggestions.map(s => `<strong>"${s}"</strong>`).join(', ') : 'No suggestions'}
-            </div>
-            <small>${match.message}</small>
-        </div>
-    `).join('');
-
-    correctedTextContent.textContent = result.correctedText || result.originalText;
-    correctedText.style.display = 'block';
-}
-
 // Initiate upgrade
 async function initiateUpgrade() {
     try {
@@ -348,13 +278,6 @@ async function completePayment() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Auto-update character count
-    document.getElementById('textInput').addEventListener('input', (e) => {
-        const count = e.target.value.length;
-        document.getElementById('charCount').textContent = `${count}/5000 characters`;
-    });
-
-    // Close modal on outside click
     window.addEventListener('click', (e) => {
         const modal = document.getElementById('paymentModal');
         if (e.target === modal) {
