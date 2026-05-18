@@ -32,9 +32,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure static files to serve from the project root instead of wwwroot
-var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
-    app.Environment.ContentRootPath);
+// Configure static files to serve from wwwroot directory
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath);
 
 app.UseStaticFiles(new StaticFileOptions
 {
