@@ -1,8 +1,21 @@
+using GrammarCorrector.Data;
 using GrammarCorrector.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add DbContext
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Data Source=grammar_corrector.db";
+    options.UseSqlServer(connectionString);
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -20,6 +33,40 @@ builder.Services.AddHttpClient<IGrammarService, GrammarService>(client =>
     client.Timeout = TimeSpan.FromSeconds(15);
 });
 
+// Register authentication services
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var secretKey = jwtSettings.GetValue<string>("SecretKey") 
+    ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
+        ValidateAudience = true,
+        ValidAudience = jwtSettings.GetValue<string>("Audience"),
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Register business services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// Configure Stripe
+var stripeSettings = builder.Configuration.GetSection("Stripe");
+Stripe.StripeConfiguration.ApiKey = stripeSettings.GetValue<string>("SecretKey");
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -32,6 +79,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Apply pending database migrations
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure static files to serve from wwwroot directory
 var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath);
@@ -43,6 +97,8 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 // Serve index.html for any unmatched route (SPA fallback)

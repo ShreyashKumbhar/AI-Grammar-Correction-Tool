@@ -1,52 +1,238 @@
 # ✍ Prose — AI Grammar Corrector
 
-A **full-stack grammar and spell-checking web app** built with ASP.NET Core 8 (C#) for the backend and a hand-crafted luxury editorial frontend (HTML/CSS/JS).
+A full-stack **grammar and spell-checking web application** with user authentication, subscription management, and payment processing. Built with **ASP.NET Core 8** (C#) backend and modern **HTML/CSS/JavaScript** frontend.
+
+**Live Demo:** [Add live URL if available]
 
 ---
 
-## 📸 Features
+## ✨ Key Features
 
-| Feature | Detail |
-|---|---|
-| **Spelling detection** | Powered by LanguageTool's open-source engine |
-| **Grammar checking** | Subject-verb agreement, articles, tense issues, etc. |
-| **Style suggestions** | Redundancy, clarity, wordiness |
-| **Inline highlights** | Errors colour-coded by type with hover tooltips |
-| **Auto-corrected text** | Changed words highlighted in gold |
-| **Issue sidebar** | Click a card to jump to the error in context |
-| **Multi-language** | 10 language options via LanguageTool |
-| **Offline fallback** | Built-in rule engine if LanguageTool is unreachable |
-| **Responsive** | Fully mobile and desktop optimised |
+### Core Grammar Checking
+- **Spelling & Grammar Detection** – Powered by LanguageTool's open-source engine
+- **Grammar Rules** – Subject-verb agreement, articles, tense issues, and more
+- **Style Suggestions** – Redundancy, clarity, and wordiness recommendations
+- **Multi-language Support** – 10 language options via LanguageTool
+- **Offline Fallback** – Built-in rule engine works when LanguageTool API is unavailable
+
+### User & Subscription System
+- **Secure Authentication** – JWT-based with Bcrypt password hashing
+- **Subscription Tiers**
+  - *Free*: 500 corrections/month
+  - *Unlimited*: Unlimited corrections for $9.99/month
+- **Payment Processing** – Stripe integration with Payment Intent API
+- **Usage Analytics** – Track corrections and monitor monthly quota
+- **User Dashboard** – Manage account, subscriptions, and settings
+
+### User Interface
+- **Inline Error Highlights** – Color-coded by error type with hover tooltips
+- **Auto-corrected Text** – Changed words highlighted for easy review
+- **Issue Sidebar** – Click error cards to jump to context in text
+- **Responsive Design** – Optimized for desktop and mobile devices
+- **Dark Theme UI** – Professional, luxury editorial interface
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Internet connection (for LanguageTool API — optional, fallback engine works offline)
+- [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) (LocalDB or Express)
+- [Stripe Account](https://stripe.com) (for payment integration)
 
-### 1. Clone / extract the project
+### Installation & Setup
 
-```bash
-cd GrammarCorrector
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/ShreyashKumbhar/AI-Grammar-Correction-Tool.git
+   cd GrammarCorrector
+   ```
 
-### 2. Restore and run
+2. **Configure appsettings.json**
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=.;Database=GrammarCorrectorDb;Trusted_Connection=true;TrustServerCertificate=true;"
+     },
+     "Jwt": {
+       "SecretKey": "your-secret-key-minimum-32-characters-long",
+       "Issuer": "GrammarCorrector",
+       "Audience": "GrammarCorrectorUsers",
+       "ExpirationMinutes": 1440
+     },
+     "Stripe": {
+       "SecretKey": "sk_test_YOUR_KEY",
+       "PublishableKey": "pk_test_YOUR_KEY",
+       "WebhookSecret": "whsec_YOUR_SECRET"
+     }
+   }
+   ```
 
-```bash
-dotnet restore
-dotnet run
-```
+3. **Restore dependencies and create database**
+   ```bash
+   dotnet restore
+   dotnet ef database update
+   ```
 
-The app starts on **https://localhost:50866** and **http://localhost:50867** (configured in `Properties/launchSettings.json`).
+4. **Run the application**
+   ```bash
+   dotnet run
+   ```
 
-### 3. Open in browser
-
-Navigate to `https://localhost:50866` — the frontend is served from `wwwroot/` directory.
+5. **Open in browser**
+   Navigate to `https://localhost:50866`
 
 ---
+
+## 📁 Project Structure
+
+```
+GrammarCorrector/
+├── Controllers/              # API controllers
+│   ├── AuthController.cs
+│   ├── GrammarController.cs
+│   ├── SubscriptionController.cs
+│   └── PaymentController.cs
+├── Services/                 # Business logic
+│   ├── IGrammarService.cs
+│   ├── IAuthService.cs
+│   ├── ISubscriptionService.cs
+│   └── [Implementation files]
+├── Models/                   # Data models
+│   ├── User.cs
+│   ├── CorrectionRequest.cs
+│   └── Subscription.cs
+├── Data/                     # Entity Framework DbContext
+├── wwwroot/                  # Static web assets
+│   ├── index.html
+│   ├── auth.html
+│   ├── dashboard.html
+│   ├── css/style.css
+│   └── js/app.js
+├── Properties/launchSettings.json
+└── Program.cs                # Startup configuration
+```
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+Key configuration settings in `appsettings.json`:
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| `ConnectionStrings.DefaultConnection` | SQL Server connection | `Server=.;Database=GrammarCorrectorDb;...` |
+| `Jwt.SecretKey` | JWT signing key (min 32 chars) | `your-secret-key-...` |
+| `Stripe.SecretKey` | Stripe secret API key | `sk_test_...` |
+| `Stripe.PublishableKey` | Stripe publishable key | `pk_test_...` |
+
+### LanguageTool API
+The app uses LanguageTool for grammar checking. Default settings:
+- **Base URL**: `https://api.languagetool.org`
+- **Endpoint**: `/v2/check`
+- **Timeout**: 15 seconds
+- **Fallback**: Built-in rules engine if API unavailable
+
+---
+
+## 📚 API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` – Register new user
+- `POST /api/auth/login` – User login (returns JWT token)
+- `POST /api/auth/change-password` – Change user password
+
+### Grammar Checking
+- `POST /api/grammar/check` – Check text for grammar/spelling errors
+
+### Subscriptions
+- `GET /api/subscription/status` – Get user subscription status
+- `POST /api/subscription/upgrade` – Upgrade to Unlimited tier
+- `POST /api/subscription/downgrade` – Downgrade to Free tier
+
+### Payments
+- `POST /api/payment/create-payment-intent` – Initiate Stripe payment
+- `GET /api/payment/history` – Get payment transaction history
+
+### Analytics
+- `GET /api/analytics/usage` – Get monthly usage statistics
+
+---
+
+## 🔐 Security
+
+- **Passwords** – Bcrypt hashing with salt
+- **API Authentication** – JWT tokens with 24-hour expiration
+- **Payment Security** – PCI-compliant Stripe integration
+- **HTTPS** – Enforced for all connections
+- **CORS** – Configured for same-origin requests
+
+---
+
+## 🛠️ Technologies
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | ASP.NET Core 8, Entity Framework Core 8 |
+| **Database** | SQL Server (LocalDB/Express) |
+| **Authentication** | JWT (System.IdentityModel.Tokens.Jwt) |
+| **Password Hashing** | BCrypt.Net-Next |
+| **Payments** | Stripe.net |
+| **Grammar Engine** | LanguageTool API |
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript |
+
+---
+
+## 📋 Requirements for Development
+
+- .NET 8 SDK or later
+- Visual Studio 2022/2026 or VS Code
+- SQL Server (LocalDB included with Visual Studio)
+- Git
+
+---
+
+## 📝 License
+
+This project is [MIT licensed](LICENSE) – feel free to use, modify, and distribute.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'Add your feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Submit a Pull Request
+
+For major changes, please open an issue first to discuss proposed changes.
+
+---
+
+## 💬 Support
+
+For questions or issues:
+- Open a [GitHub Issue](https://github.com/ShreyashKumbhar/AI-Grammar-Correction-Tool/issues)
+- Check existing documentation in the repository
+
+---
+
+## 👨‍💻 Author
+
+**Shreyash Kumbhar** – [GitHub Profile](https://github.com/ShreyashKumbhar)
+
+---
+
+## 🙏 Acknowledgments
+
+- [LanguageTool](https://languagetool.org/) – Grammar checking engine
+- [Stripe](https://stripe.com/) – Payment processing
+- [ASP.NET Core](https://dotnet.microsoft.com/) – Framework
+- [Entity Framework Core](https://docs.microsoft.com/ef/) – ORM
 
 ## 🏗 Project Structure
 
