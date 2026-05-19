@@ -63,9 +63,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-// Configure Stripe
-var stripeSettings = builder.Configuration.GetSection("Stripe");
-Stripe.StripeConfiguration.ApiKey = stripeSettings.GetValue<string>("SecretKey");
+builder.Services.Configure<RazorpayOptions>(
+    builder.Configuration.GetSection(RazorpayOptions.SectionName));
+builder.Services.AddHttpClient<RazorpayApiClient>();
 
 builder.Services.AddCors(options =>
 {

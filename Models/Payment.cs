@@ -18,14 +18,14 @@ public class Payment
     public User User { get; set; } = null!;
 
     /// <summary>
-    /// Unique Stripe payment intent ID.
+    /// Razorpay payment ID (pay_xxx).
     /// </summary>
-    public string StripePaymentIntentId { get; set; } = null!;
+    public string RazorpayPaymentId { get; set; } = null!;
 
     /// <summary>
-    /// Amount paid in USD cents.
+    /// Amount paid in paise (INR smallest unit).
     /// </summary>
-    public decimal AmountInCents { get; set; }
+    public decimal AmountInPaise { get; set; }
 
     /// <summary>
     /// Payment status (Pending, Completed, Failed, Refunded).

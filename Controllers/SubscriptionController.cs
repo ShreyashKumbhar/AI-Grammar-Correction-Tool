@@ -233,7 +233,7 @@ public class SubscriptionController : ControllerBase
 
     /// <summary>
     /// POST /api/subscription/upgrade
-    /// Initiates upgrade to Unlimited tier (creates payment intent).
+    /// Initiates upgrade to Unlimited tier (creates Razorpay order).
     /// </summary>
     [HttpPost("upgrade")]
     [Authorize]
@@ -249,17 +249,17 @@ public class SubscriptionController : ControllerBase
             if (!int.TryParse(userIdClaim?.Value, out var userId))
                 return Unauthorized(new ErrorResponse { Error = "Invalid user ID in token." });
 
-            // Create Stripe payment intent
-            var result = await _paymentService.CreatePaymentIntentAsync(userId, SubscriptionTier.Unlimited);
+            var result = await _paymentService.CreatePaymentOrderAsync(userId, SubscriptionTier.Unlimited);
 
             if (!result.Success)
                 return BadRequest(new ErrorResponse { Error = result.Error });
 
             var response = new UpgradeResponse
             {
-                ClientSecret = result.ClientSecret,
-                Amount = result.AmountInCents,
-                Currency = "usd"
+                OrderId = result.OrderId,
+                KeyId = result.KeyId,
+                Amount = result.AmountInPaise,
+                Currency = result.Currency
             };
 
             return Ok(response);
@@ -356,7 +356,8 @@ public class AnalyticsResponse
 
 public class UpgradeResponse
 {
-    public string? ClientSecret { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "usd";
+    public string? OrderId { get; set; }
+    public string? KeyId { get; set; }
+    public long Amount { get; set; }
+    public string Currency { get; set; } = "INR";
 }

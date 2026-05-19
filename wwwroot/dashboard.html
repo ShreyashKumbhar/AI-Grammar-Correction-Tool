@@ -184,17 +184,17 @@
                 <button onclick="closePaymentModal()" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="card-element"></div>
-                <div id="card-errors" role="alert"></div>
+                <p id="paymentModalDesc">Complete your payment securely via Razorpay to activate Unlimited (₹99/month).</p>
+                <div id="payment-errors" class="error-message" role="alert"></div>
             </div>
             <div class="modal-footer">
                 <button onclick="closePaymentModal()" class="btn btn-outline">Cancel</button>
-                <button onclick="completePayment()" class="btn btn-primary">Pay ₹99/month</button>
+                <button onclick="startRazorpayCheckout()" class="btn btn-primary" id="btnPayRazorpay">Pay ₹99/month</button>
             </div>
         </div>
     </div>
 
-    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/dashboard.js"></script>
   </div>

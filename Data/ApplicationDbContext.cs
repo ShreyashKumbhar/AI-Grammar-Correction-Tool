@@ -44,6 +44,7 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.Tier).IsUnique();
             entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
             entity.Property(e => e.MonthlyPrice).HasPrecision(10, 2);
+            entity.Property(e => e.RazorpayPlanId).HasColumnName("StripePriceId");
         });
 
         // UsageMetrics configuration
@@ -62,9 +63,14 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.StripePaymentIntentId).IsUnique();
-            entity.Property(e => e.AmountInCents).HasPrecision(12, 0);
-            entity.Property(e => e.StripePaymentIntentId).IsRequired().HasMaxLength(256);
+            entity.HasIndex(e => e.RazorpayPaymentId).IsUnique();
+            entity.Property(e => e.AmountInPaise)
+                .HasColumnName("AmountInCents")
+                .HasPrecision(12, 0);
+            entity.Property(e => e.RazorpayPaymentId)
+                .HasColumnName("StripePaymentIntentId")
+                .IsRequired()
+                .HasMaxLength(256);
         });
 
         // Seed subscription tiers
@@ -94,7 +100,7 @@ public class ApplicationDbContext : DbContext
                 MonthlyQuota = null,
                 MonthlyPrice = 99m,
                 Description = "Unlimited corrections with priority support (₹99/month)",
-                StripePriceId = "price_unlimited_tier",
+                RazorpayPlanId = null,
                 IsActive = true,
                 CreatedAt = SeedTimestamp,
                 UpdatedAt = SeedTimestamp

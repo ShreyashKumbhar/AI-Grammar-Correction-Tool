@@ -1,179 +1,164 @@
 using GrammarCorrector.Data;
 using GrammarCorrector.Models;
 using Microsoft.EntityFrameworkCore;
-using Stripe;
-using StripeSubscription = Stripe.Subscription;
-using StripeSubscriptionService = Stripe.SubscriptionService;
+using System.Text.Json;
 
 namespace GrammarCorrector.Services;
 
-/// <summary>
-/// Payment processing service with Stripe integration.
-/// </summary>
 public class PaymentService : IPaymentService
 {
     private readonly ApplicationDbContext _db;
-    private readonly IConfiguration _configuration;
     private readonly IAuthService _authService;
     private readonly ISubscriptionService _subscriptionService;
+    private readonly RazorpayApiClient _razorpay;
     private readonly ILogger<PaymentService> _logger;
 
     public PaymentService(
         ApplicationDbContext db,
-        IConfiguration configuration,
         IAuthService authService,
         ISubscriptionService subscriptionService,
+        RazorpayApiClient razorpay,
         ILogger<PaymentService> logger)
     {
         _db = db;
-        _configuration = configuration;
         _authService = authService;
         _subscriptionService = subscriptionService;
+        _razorpay = razorpay;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Creates a Stripe payment intent for subscription upgrade.
-    /// </summary>
-    public async Task<PaymentIntentResult> CreatePaymentIntentAsync(int userId, SubscriptionTier tier)
+    public async Task<PaymentOrderResult> CreatePaymentOrderAsync(int userId, SubscriptionTier tier)
     {
         try
         {
+            if (!_razorpay.IsConfigured)
+            {
+                return new PaymentOrderResult
+                {
+                    Success = false,
+                    Error = "Payment gateway is not configured. Add Razorpay keys in appsettings."
+                };
+            }
+
             var user = await _authService.GetUserByIdAsync(userId);
             if (user == null)
-                return new PaymentIntentResult { Success = false, Error = "User not found." };
+                return new PaymentOrderResult { Success = false, Error = "User not found." };
 
             var tierDetails = await _subscriptionService.GetSubscriptionTierDetailsAsync(tier);
             if (tierDetails == null)
-                return new PaymentIntentResult { Success = false, Error = "Subscription tier not found." };
+                return new PaymentOrderResult { Success = false, Error = "Subscription tier not found." };
 
-            // Amount should be greater than 0 for payment
             if (tierDetails.MonthlyPrice <= 0)
-                return new PaymentIntentResult { Success = false, Error = "Invalid subscription price." };
+                return new PaymentOrderResult { Success = false, Error = "Invalid subscription price." };
 
-            // Create or get Stripe customer
-            if (string.IsNullOrEmpty(user.StripeCustomerId))
+            var amountInPaise = (long)(tierDetails.MonthlyPrice * 100);
+            var receipt = $"prose_{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+            var notes = new Dictionary<string, string>
             {
-                var customerOptions = new CustomerCreateOptions
+                { "userId", userId.ToString() },
+                { "subscriptionTier", tier.ToString() }
+            };
+
+            var order = await _razorpay.CreateOrderAsync(amountInPaise, receipt, notes);
+            if (order == null)
+            {
+                return new PaymentOrderResult
                 {
-                    Email = user.Email,
-                    Name = user.FullName
+                    Success = false,
+                    Error = "Could not create Razorpay order. Check your API keys."
                 };
-                var customerService = new CustomerService();
-                var customer = await customerService.CreateAsync(customerOptions);
-                user.StripeCustomerId = customer.Id;
-                _db.Users.Update(user);
-                await _db.SaveChangesAsync();
             }
 
-            // Create payment intent
-            var amountInPaise = (long)(tierDetails.MonthlyPrice * 100);
-            var paymentIntentOptions = new PaymentIntentCreateOptions
-            {
-                Amount = amountInPaise,
-                Currency = "inr",
-                Customer = user.StripeCustomerId,
-                Description = $"Upgrade to {tier} subscription",
-                Metadata = new Dictionary<string, string>
-                {
-                    { "userId", userId.ToString() },
-                    { "subscriptionTier", tier.ToString() }
-                }
-            };
+            _logger.LogInformation("Razorpay order {OrderId} created for user {UserId}", order.Id, userId);
 
-            var paymentIntentService = new PaymentIntentService();
-            var paymentIntent = await paymentIntentService.CreateAsync(paymentIntentOptions);
-
-            _logger.LogInformation($"Payment intent created for user {userId}: {paymentIntent.Id}");
-
-            return new PaymentIntentResult
+            return new PaymentOrderResult
             {
                 Success = true,
-                ClientSecret = paymentIntent.ClientSecret,
-                AmountInCents = amountInPaise
-            };
-        }
-        catch (StripeException ex)
-        {
-            _logger.LogError(ex, $"Stripe error creating payment intent for user {userId}");
-            return new PaymentIntentResult
-            {
-                Success = false,
-                Error = $"Payment error: {ex.Message}"
+                OrderId = order.Id,
+                KeyId = _razorpay.KeyId,
+                AmountInPaise = amountInPaise,
+                Currency = "INR"
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error creating payment intent for user {userId}");
-            return new PaymentIntentResult
+            _logger.LogError(ex, "Error creating Razorpay order for user {UserId}", userId);
+            return new PaymentOrderResult
             {
                 Success = false,
-                Error = "An error occurred while processing payment."
+                Error = "An error occurred while starting payment."
             };
         }
     }
 
-    /// <summary>
-    /// Completes subscription upgrade after successful payment.
-    /// </summary>
-    public async Task<bool> CompleteSubscriptionUpgradeAsync(int userId, string paymentIntentId)
+    public async Task<bool> VerifyAndCompletePaymentAsync(
+        int userId,
+        string orderId,
+        string paymentId,
+        string signature)
+    {
+        if (!_razorpay.VerifyCheckoutSignature(orderId, paymentId, signature))
+        {
+            _logger.LogWarning("Invalid Razorpay signature for user {UserId}", userId);
+            return false;
+        }
+
+        return await CompleteSubscriptionUpgradeAsync(userId, paymentId, orderId);
+    }
+
+    public async Task<bool> CompleteSubscriptionUpgradeAsync(int userId, string paymentId, string? orderId = null)
     {
         try
         {
-            var paymentIntentService = new PaymentIntentService();
-            var paymentIntent = await paymentIntentService.GetAsync(paymentIntentId);
+            var existing = await _db.Payments
+                .AnyAsync(p => p.RazorpayPaymentId == paymentId && p.Status == PaymentStatus.Completed);
+            if (existing)
+                return true;
 
-            if (paymentIntent.Status != "succeeded")
+            var payment = await _razorpay.GetPaymentAsync(paymentId);
+            if (payment == null || payment.Status != "captured")
+                return false;
+
+            if (!string.IsNullOrEmpty(orderId) && payment.OrderId != orderId)
                 return false;
 
             var user = await _authService.GetUserByIdAsync(userId);
             if (user == null)
                 return false;
 
-            // Parse subscription tier from metadata
-            if (!paymentIntent.Metadata.TryGetValue("subscriptionTier", out var tierString) ||
-                !Enum.TryParse<SubscriptionTier>(tierString, out var tier))
-            {
-                return false;
-            }
-
-            // Update subscription to Unlimited
+            var tier = SubscriptionTier.Unlimited;
             var subscriptionEndDate = DateTime.UtcNow.AddMonths(1);
             var upgradeSuccess = await _subscriptionService.UpgradeSubscriptionAsync(userId, tier, subscriptionEndDate);
-
             if (!upgradeSuccess)
                 return false;
 
-            // Record payment
-            var payment = new Payment
+            var record = new Payment
             {
                 UserId = userId,
-                StripePaymentIntentId = paymentIntentId,
-                AmountInCents = (decimal)(paymentIntent.Amount),
+                RazorpayPaymentId = paymentId,
+                AmountInPaise = payment.Amount,
                 Status = PaymentStatus.Completed,
                 SubscriptionTier = tier,
                 PaymentDate = DateTime.UtcNow,
-                InvoiceReference = paymentIntent.Id,
+                InvoiceReference = payment.OrderId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            _db.Payments.Add(payment);
+            _db.Payments.Add(record);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation($"Subscription upgrade completed for user {userId} to {tier} tier");
+            _logger.LogInformation("Subscription upgrade completed for user {UserId} via Razorpay {PaymentId}",
+                userId, paymentId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error completing subscription upgrade for user {userId}");
+            _logger.LogError(ex, "Error completing subscription upgrade for user {UserId}", userId);
             return false;
         }
     }
 
-    /// <summary>
-    /// Cancels a user's active subscription.
-    /// </summary>
     public async Task<bool> CancelSubscriptionAsync(int userId)
     {
         try
@@ -182,36 +167,21 @@ public class PaymentService : IPaymentService
             if (user == null)
                 return false;
 
-            if (string.IsNullOrEmpty(user.StripeSubscriptionId))
-                return true; // No active subscription to cancel
-
-            var stripeSubscriptionService = new StripeSubscriptionService();
-            var cancellation = new SubscriptionCancelOptions();
-            await stripeSubscriptionService.CancelAsync(user.StripeSubscriptionId, cancellation);
-
             user.StripeSubscriptionId = null;
             user.SubscriptionEndDate = null;
             _db.Users.Update(user);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation($"Subscription cancelled for user {userId}");
+            _logger.LogInformation("Subscription cancelled locally for user {UserId}", userId);
             return true;
-        }
-        catch (StripeException ex)
-        {
-            _logger.LogError(ex, $"Stripe error cancelling subscription for user {userId}");
-            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error cancelling subscription for user {userId}");
+            _logger.LogError(ex, "Error cancelling subscription for user {UserId}", userId);
             return false;
         }
     }
 
-    /// <summary>
-    /// Gets payment history for a user.
-    /// </summary>
     public async Task<List<PaymentHistory>> GetPaymentHistoryAsync(int userId)
     {
         try
@@ -224,8 +194,8 @@ public class PaymentService : IPaymentService
             return payments.Select(p => new PaymentHistory
             {
                 Id = p.Id,
-                StripePaymentIntentId = p.StripePaymentIntentId,
-                AmountInCents = p.AmountInCents,
+                RazorpayPaymentId = p.RazorpayPaymentId,
+                AmountInPaise = p.AmountInPaise,
                 Status = p.Status.ToString(),
                 SubscriptionTier = p.SubscriptionTier.ToString(),
                 PaymentDate = p.PaymentDate,
@@ -234,142 +204,124 @@ public class PaymentService : IPaymentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error getting payment history for user {userId}");
+            _logger.LogError(ex, "Error getting payment history for user {UserId}", userId);
             return new List<PaymentHistory>();
         }
     }
 
-    /// <summary>
-    /// Handles Stripe webhook for payment events.
-    /// </summary>
     public async Task<bool> HandleWebhookAsync(string json, string signatureHeader)
     {
         try
         {
-            var webhookSecret = _configuration["Stripe:WebhookSecret"];
-            if (string.IsNullOrEmpty(webhookSecret))
+            if (string.IsNullOrWhiteSpace(signatureHeader) ||
+                !_razorpay.VerifyWebhookSignature(json, signatureHeader))
             {
-                _logger.LogWarning("Stripe webhook secret not configured");
+                _logger.LogWarning("Razorpay webhook signature verification failed");
                 return false;
             }
 
-            var stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, webhookSecret);
-
-            switch (stripeEvent.Type)
+            var payload = JsonSerializer.Deserialize<RazorpayWebhookPayload>(json, new JsonSerializerOptions
             {
-                case "payment_intent.succeeded":
-                    return await HandlePaymentSucceeded(stripeEvent.Data.Object as PaymentIntent);
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            });
 
-                case "payment_intent.payment_failed":
-                    return await HandlePaymentFailed(stripeEvent.Data.Object as PaymentIntent);
+            if (payload?.Payload?.Payment?.Entity == null)
+                return true;
 
-                case "customer.subscription.deleted":
-                    return await HandleSubscriptionCancelled(stripeEvent.Data.Object as StripeSubscription);
+            var payment = payload.Payload.Payment.Entity;
+
+            if (!payment.Id.StartsWith("pay_", StringComparison.Ordinal))
+                return true;
+
+            switch (payload.Event)
+            {
+                case "payment.captured":
+                    return await HandlePaymentCaptured(payment);
+
+                case "payment.failed":
+                    return await HandlePaymentFailed(payment);
 
                 default:
-                    _logger.LogInformation($"Unhandled Stripe event type: {stripeEvent.Type}");
+                    _logger.LogInformation("Unhandled Razorpay event: {Event}", payload.Event);
                     return true;
             }
         }
-        catch (StripeException ex)
-        {
-            _logger.LogError(ex, "Stripe webhook error");
-            return false;
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling Stripe webhook");
+            _logger.LogError(ex, "Error handling Razorpay webhook");
             return false;
         }
     }
 
-    /// <summary>
-    /// Handles payment.intent.succeeded webhook event.
-    /// </summary>
-    private async Task<bool> HandlePaymentSucceeded(PaymentIntent? paymentIntent)
+    private async Task<bool> HandlePaymentCaptured(RazorpayPayment payment)
     {
-        if (paymentIntent == null)
-            return false;
+        var order = await _db.Payments.FirstOrDefaultAsync(p => p.InvoiceReference == payment.OrderId);
+        // Resolve userId from order notes via Razorpay order - fetch payment notes not stored; use order receipt pattern
+        // Webhook payment may include notes in entity - for simplicity fetch order from API not implemented
+        // Try parse from existing pending payment or skip if verify endpoint already handled
 
-        if (!paymentIntent.Metadata.TryGetValue("userId", out var userIdStr) ||
-            !int.TryParse(userIdStr, out var userId))
+        var userId = await ResolveUserIdFromOrderAsync(payment.OrderId);
+        if (userId == null)
         {
-            return false;
-        }
-
-        return await CompleteSubscriptionUpgradeAsync(userId, paymentIntent.Id);
-    }
-
-    /// <summary>
-    /// Handles payment.intent.payment_failed webhook event.
-    /// </summary>
-    private async Task<bool> HandlePaymentFailed(PaymentIntent? paymentIntent)
-    {
-        if (paymentIntent == null)
-            return false;
-
-        try
-        {
-            if (!paymentIntent.Metadata.TryGetValue("userId", out var userIdStr) ||
-                !int.TryParse(userIdStr, out var userId))
-            {
-                return false;
-            }
-
-            var payment = new Payment
-            {
-                UserId = userId,
-                StripePaymentIntentId = paymentIntent.Id,
-                AmountInCents = (decimal)(paymentIntent.Amount),
-                Status = PaymentStatus.Failed,
-                SubscriptionTier = SubscriptionTier.Unlimited,
-                PaymentDate = DateTime.UtcNow,
-                ErrorMessage = paymentIntent.LastPaymentError?.Message,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _db.Payments.Add(payment);
-            await _db.SaveChangesAsync();
-
-            _logger.LogWarning($"Payment failed for user {userId}: {paymentIntent.LastPaymentError?.Message}");
+            _logger.LogWarning("Could not resolve user for Razorpay order {OrderId}", payment.OrderId);
             return true;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error handling payment failure");
-            return false;
-        }
+
+        return await CompleteSubscriptionUpgradeAsync(userId.Value, payment.Id, payment.OrderId);
     }
 
-    /// <summary>
-    /// Handles customer.subscription.deleted webhook event.
-    /// </summary>
-    private async Task<bool> HandleSubscriptionCancelled(StripeSubscription? subscription)
+    private async Task<bool> HandlePaymentFailed(RazorpayPayment payment)
     {
-        if (subscription == null)
-            return false;
-
-        try
-        {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.StripeSubscriptionId == subscription.Id);
-            if (user == null)
-                return true;
-
-            user.StripeSubscriptionId = null;
-            user.SubscriptionTier = SubscriptionTier.Free;
-            user.SubscriptionEndDate = null;
-
-            _db.Users.Update(user);
-            await _db.SaveChangesAsync();
-
-            _logger.LogInformation($"Subscription cancelled via webhook for user {user.Id}");
+        var userId = await ResolveUserIdFromOrderAsync(payment.OrderId);
+        if (userId == null)
             return true;
-        }
-        catch (Exception ex)
+
+        var exists = await _db.Payments.AnyAsync(p => p.RazorpayPaymentId == payment.Id);
+        if (exists)
+            return true;
+
+        _db.Payments.Add(new Payment
         {
-            _logger.LogError(ex, "Error handling subscription cancellation");
-            return false;
+            UserId = userId.Value,
+            RazorpayPaymentId = payment.Id,
+            AmountInPaise = payment.Amount,
+            Status = PaymentStatus.Failed,
+            SubscriptionTier = SubscriptionTier.Unlimited,
+            PaymentDate = DateTime.UtcNow,
+            ErrorMessage = payment.ErrorDescription,
+            InvoiceReference = payment.OrderId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    private async Task<int?> ResolveUserIdFromOrderAsync(string orderId)
+    {
+        var existing = await _db.Payments
+            .Where(p => p.InvoiceReference == orderId)
+            .Select(p => (int?)p.UserId)
+            .FirstOrDefaultAsync();
+
+        if (existing != null)
+            return existing;
+
+        var order = await _razorpay.GetOrderAsync(orderId);
+        if (order?.Notes != null &&
+            order.Notes.TryGetValue("userId", out var userIdStr) &&
+            int.TryParse(userIdStr, out var userIdFromNotes))
+        {
+            return userIdFromNotes;
         }
+
+        if (!string.IsNullOrEmpty(order?.Receipt))
+        {
+            var parts = order.Receipt.Split('_', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2 && parts[0] == "prose" && int.TryParse(parts[1], out var userIdFromReceipt))
+                return userIdFromReceipt;
+        }
+
+        return null;
     }
 }

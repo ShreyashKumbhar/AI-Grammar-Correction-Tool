@@ -28,9 +28,9 @@ public class Subscription
     public string Description { get; set; } = null!;
 
     /// <summary>
-    /// Stripe price ID for this tier.
+    /// Optional Razorpay plan ID for recurring billing.
     /// </summary>
-    public string? StripePriceId { get; set; }
+    public string? RazorpayPlanId { get; set; }
 
     /// <summary>
     /// Flag indicating if this tier is active.

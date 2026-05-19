@@ -179,7 +179,8 @@ async function initiateUpgrade() {
         }
 
         const data = await response.json();
-        openPaymentModal(data);
+        pendingPaymentOrder = data;
+        await startRazorpayCheckout();
     } catch (error) {
         console.error('Error initiating upgrade:', error);
         showNotification('An error occurred', 'error');
@@ -259,21 +260,90 @@ async function changePassword() {
     }
 }
 
-// Payment modal handling
+let pendingPaymentOrder = null;
+
 function openPaymentModal(paymentData) {
-    // Initialize Stripe (you'll need to set the publishable key from appsettings)
-    const modal = document.getElementById('paymentModal');
-    modal.style.display = 'flex';
-    // Payment will be handled by Stripe Elements
+    pendingPaymentOrder = paymentData;
+    const errorEl = document.getElementById('payment-errors');
+    if (errorEl) errorEl.textContent = '';
+    document.getElementById('paymentModal').style.display = 'flex';
 }
 
 function closePaymentModal() {
     document.getElementById('paymentModal').style.display = 'none';
+    pendingPaymentOrder = null;
 }
 
-async function completePayment() {
-    // This would integrate with Stripe Elements for payment processing
-    showNotification('Payment processing...', 'info');
+async function startRazorpayCheckout() {
+    if (!pendingPaymentOrder?.orderId || !pendingPaymentOrder?.keyId) {
+        showNotification('Payment session expired. Please try again.', 'error');
+        return;
+    }
+
+    if (typeof Razorpay === 'undefined') {
+        showNotification('Payment gateway failed to load. Refresh and try again.', 'error');
+        return;
+    }
+
+    const user = getCurrentUser();
+    const options = {
+        key: pendingPaymentOrder.keyId,
+        amount: pendingPaymentOrder.amount,
+        currency: pendingPaymentOrder.currency || 'INR',
+        name: 'Prose',
+        description: 'Unlimited subscription (1 month)',
+        order_id: pendingPaymentOrder.orderId,
+        prefill: {
+            name: user?.fullName || '',
+            email: user?.email || ''
+        },
+        theme: { color: '#c8a96e' },
+        handler: async function (response) {
+            await verifyRazorpayPayment(response);
+        },
+        modal: {
+            ondismiss: function () {
+                showNotification('Payment cancelled.', 'info');
+            }
+        }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (resp) {
+        const msg = resp.error?.description || 'Payment failed.';
+        const errorEl = document.getElementById('payment-errors');
+        if (errorEl) errorEl.textContent = msg;
+        showNotification(msg, 'error');
+    });
+    rzp.open();
+    closePaymentModal();
+}
+
+async function verifyRazorpayPayment(response) {
+    try {
+        const res = await authenticatedFetch(`${API_BASE}/payment/verify`, {
+            method: 'POST',
+            body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature
+            })
+        });
+
+        if (!res?.ok) {
+            const data = await res?.json();
+            showNotification(data?.error || 'Payment verification failed.', 'error');
+            return;
+        }
+
+        showNotification('Upgrade successful! Welcome to Unlimited.', 'success');
+        await loadUserProfile();
+        await loadSubscriptionStatus();
+        await loadPaymentHistory();
+    } catch (error) {
+        console.error('Payment verification error:', error);
+        showNotification('Could not verify payment. Contact support if you were charged.', 'error');
+    }
 }
 
 // Setup event listeners

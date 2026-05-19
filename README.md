@@ -11,8 +11,8 @@ A full-stack **grammar and spell-checking web application** with user authentica
 - **Multi-language Support** – 10+ language options via LanguageTool
 - **Offline Fallback** – Built-in rule engine for when LanguageTool API is unavailable
 - **Secure Authentication** – JWT-based with Bcrypt password hashing
-- **Subscription Tiers** – Free (500 corrections/month) and Unlimited ($9.99/month)
-- **Payment Processing** – Stripe integration with Payment Intent API
+- **Subscription Tiers** – Free (500 corrections/month) and Unlimited (₹99/month)
+- **Payment Processing** – Razorpay Checkout (INR)
 - **Usage Analytics** – Track corrections and monitor monthly quota
 - **User Dashboard** – Manage account, subscriptions, and settings
 - **Responsive Design** – Optimized for desktop and mobile devices
@@ -24,7 +24,7 @@ A full-stack **grammar and spell-checking web application** with user authentica
 ### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) (LocalDB or Express)
-- [Stripe Account](https://stripe.com) (for payment integration)
+- [Razorpay Account](https://razorpay.com) (for payment integration in India)
 
 ### Installation & Setup
 
@@ -46,10 +46,10 @@ A full-stack **grammar and spell-checking web application** with user authentica
        "Audience": "GrammarCorrectorUsers",
        "ExpirationMinutes": 1440
      },
-     "Stripe": {
-       "SecretKey": "sk_test_YOUR_KEY",
-       "PublishableKey": "pk_test_YOUR_KEY",
-       "WebhookSecret": "whsec_YOUR_SECRET"
+     "Razorpay": {
+       "KeyId": "rzp_test_YOUR_KEY_ID",
+       "KeySecret": "YOUR_KEY_SECRET",
+       "WebhookSecret": "YOUR_WEBHOOK_SECRET"
      }
    }
    ```
@@ -112,7 +112,9 @@ GrammarCorrector/
 - `POST /api/subscription/downgrade` – Downgrade to Free tier
 
 ### Payments
-- `POST /api/payment/create-payment-intent` – Initiate Stripe payment
+- `POST /api/subscription/upgrade` – Create Razorpay order
+- `POST /api/payment/verify` – Verify Razorpay payment and activate Unlimited
+- `POST /api/webhook/razorpay` – Razorpay webhook endpoint
 - `GET /api/payment/history` – Get payment transaction history
 
 ---
@@ -125,8 +127,9 @@ Key settings in `appsettings.json`:
 |---------|-------------|
 | `ConnectionStrings.DefaultConnection` | SQL Server connection |
 | `Jwt.SecretKey` | JWT signing key (min 32 chars) |
-| `Stripe.SecretKey` | Stripe secret API key |
-| `Stripe.PublishableKey` | Stripe publishable key |
+| `Razorpay.KeyId` | Razorpay key ID (public) |
+| `Razorpay.KeySecret` | Razorpay key secret |
+| `Razorpay.WebhookSecret` | Razorpay webhook signing secret |
 
 ### LanguageTool
 The app uses LanguageTool for grammar checking:
@@ -143,7 +146,7 @@ The app uses LanguageTool for grammar checking:
 | **Backend** | ASP.NET Core 10, Entity Framework Core 10 |
 | **Database** | SQL Server (LocalDB/Express) |
 | **Authentication** | JWT, BCrypt.Net-Next |
-| **Payments** | Stripe.net |
+| **Payments** | Razorpay Checkout API |
 | **Grammar Engine** | LanguageTool API |
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript |
 
@@ -153,7 +156,7 @@ The app uses LanguageTool for grammar checking:
 
 - **Passwords** – Bcrypt hashing with salt
 - **API Authentication** – JWT tokens with 24-hour expiration
-- **Payment Security** – PCI-compliant Stripe integration
+- **Payment Security** – PCI-compliant Razorpay Checkout
 - **HTTPS** – Enforced for all connections
 - **CORS** – Configured for same-origin requests
 
@@ -191,7 +194,7 @@ For questions or issues:
 ## 🙏 Acknowledgments
 
 - [LanguageTool](https://languagetool.org/) – Grammar checking engine
-- [Stripe](https://stripe.com/) – Payment processing
+- [Razorpay](https://razorpay.com/) – Payment processing
 - [ASP.NET Core](https://dotnet.microsoft.com/) – Framework
 - [Entity Framework Core](https://docs.microsoft.com/ef/) – ORM
 

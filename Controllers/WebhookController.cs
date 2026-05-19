@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GrammarCorrector.Controllers;
 
 /// <summary>
-/// Webhook controller for Stripe payment events.
+/// Webhook controller for Razorpay payment events.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -20,25 +20,21 @@ public class WebhookController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/webhook/stripe
-    /// Receives Stripe webhook events for payment processing.
+    /// POST /api/webhook/razorpay
     /// </summary>
-    [HttpPost("stripe")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> HandleStripeWebhook()
+    [HttpPost("razorpay")]
+    public async Task<IActionResult> HandleRazorpayWebhook()
     {
         try
         {
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-            var signatureHeader = Request.Headers["Stripe-Signature"];
+            var signatureHeader = Request.Headers["X-Razorpay-Signature"].ToString();
 
             var result = await _paymentService.HandleWebhookAsync(json, signatureHeader);
 
             if (!result)
             {
-                _logger.LogWarning("Failed to process Stripe webhook");
+                _logger.LogWarning("Failed to process Razorpay webhook");
                 return BadRequest(new { error = "Failed to process webhook" });
             }
 
@@ -46,7 +42,7 @@ public class WebhookController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling Stripe webhook");
+            _logger.LogError(ex, "Error handling Razorpay webhook");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "An error occurred while processing the webhook" });
         }

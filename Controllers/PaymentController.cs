@@ -5,9 +5,6 @@ using System.Security.Claims;
 
 namespace GrammarCorrector.Controllers;
 
-/// <summary>
-/// Payment history controller for viewing transactions.
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -24,28 +21,25 @@ public class PaymentController : ControllerBase
 
     /// <summary>
     /// GET /api/payment/history
-    /// Gets payment history for the authenticated user.
     /// </summary>
     [HttpGet("history")]
     [ProducesResponseType(typeof(List<PaymentHistoryResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetPaymentHistory()
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(userIdClaim?.Value, out var userId))
+            var userId = GetUserId();
+            if (userId == null)
                 return Unauthorized(new { error = "Invalid user ID in token." });
 
-            var history = await _paymentService.GetPaymentHistoryAsync(userId);
+            var history = await _paymentService.GetPaymentHistoryAsync(userId.Value);
 
             var response = history.Select(p => new PaymentHistoryResponse
             {
                 Id = p.Id,
-                StripePaymentIntentId = p.StripePaymentIntentId,
-                AmountInCents = p.AmountInCents,
-                AmountFormatted = $"₹{(p.AmountInCents / 100m):N0}",
+                RazorpayPaymentId = p.RazorpayPaymentId,
+                AmountInPaise = p.AmountInPaise,
+                AmountFormatted = $"₹{(p.AmountInPaise / 100m):N0}",
                 Status = p.Status,
                 SubscriptionTier = p.SubscriptionTier,
                 PaymentDate = p.PaymentDate,
@@ -61,16 +55,58 @@ public class PaymentController : ControllerBase
                 new { error = "Failed to retrieve payment history." });
         }
     }
+
+    /// <summary>
+    /// POST /api/payment/verify
+    /// Verifies Razorpay checkout signature and completes upgrade.
+    /// </summary>
+    [HttpPost("verify")]
+    [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyPayment([FromBody] VerifyPaymentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RazorpayOrderId) ||
+            string.IsNullOrWhiteSpace(request.RazorpayPaymentId) ||
+            string.IsNullOrWhiteSpace(request.RazorpaySignature))
+        {
+            return BadRequest(new { error = "Payment verification data is incomplete." });
+        }
+
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Invalid user ID in token." });
+
+        var success = await _paymentService.VerifyAndCompletePaymentAsync(
+            userId.Value,
+            request.RazorpayOrderId,
+            request.RazorpayPaymentId,
+            request.RazorpaySignature);
+
+        if (!success)
+            return BadRequest(new { error = "Payment verification failed." });
+
+        return Ok(new { message = "Payment successful. Your Unlimited plan is now active." });
+    }
+
+    private int? GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdClaim?.Value, out var userId) ? userId : null;
+    }
 }
 
-/// <summary>
-/// Response DTOs
-/// </summary>
+public class VerifyPaymentRequest
+{
+    public string RazorpayOrderId { get; set; } = null!;
+    public string RazorpayPaymentId { get; set; } = null!;
+    public string RazorpaySignature { get; set; } = null!;
+}
+
 public class PaymentHistoryResponse
 {
     public int Id { get; set; }
-    public string StripePaymentIntentId { get; set; } = null!;
-    public decimal AmountInCents { get; set; }
+    public string RazorpayPaymentId { get; set; } = null!;
+    public decimal AmountInPaise { get; set; }
     public string AmountFormatted { get; set; } = null!;
     public string Status { get; set; } = null!;
     public string SubscriptionTier { get; set; } = null!;
