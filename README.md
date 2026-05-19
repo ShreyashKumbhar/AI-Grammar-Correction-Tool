@@ -168,9 +168,9 @@ The app uses LanguageTool for grammar checking:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome via pull requests and GitHub issues.
 
 ---
 

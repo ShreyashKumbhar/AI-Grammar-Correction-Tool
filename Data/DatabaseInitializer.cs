@@ -22,7 +22,10 @@ public static class DatabaseInitializer
         }
 
         if (await UsersTableExistsAsync(db, cancellationToken))
+        {
+            await SyncSubscriptionPricingAsync(db, cancellationToken);
             return;
+        }
 
         logger.LogWarning(
             "Database is connected but application tables are missing. Creating schema from the current model.");
@@ -32,6 +35,21 @@ public static class DatabaseInitializer
         await db.Database.EnsureCreatedAsync(cancellationToken);
 
         logger.LogInformation("Database schema created successfully.");
+        await SyncSubscriptionPricingAsync(db, cancellationToken);
+    }
+
+    private static async Task SyncSubscriptionPricingAsync(
+        ApplicationDbContext db,
+        CancellationToken cancellationToken)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            UPDATE [Subscriptions]
+            SET [MonthlyPrice] = 99,
+                [Description] = N'Unlimited corrections with priority support (₹99/month)'
+            WHERE [Tier] = 1
+            """,
+            cancellationToken);
     }
 
     private static async Task<bool> UsersTableExistsAsync(

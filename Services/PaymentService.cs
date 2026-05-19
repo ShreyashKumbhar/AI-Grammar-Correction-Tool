@@ -67,11 +67,11 @@ public class PaymentService : IPaymentService
             }
 
             // Create payment intent
-            var amountInCents = (long)(tierDetails.MonthlyPrice * 100);
+            var amountInPaise = (long)(tierDetails.MonthlyPrice * 100);
             var paymentIntentOptions = new PaymentIntentCreateOptions
             {
-                Amount = amountInCents,
-                Currency = "usd",
+                Amount = amountInPaise,
+                Currency = "inr",
                 Customer = user.StripeCustomerId,
                 Description = $"Upgrade to {tier} subscription",
                 Metadata = new Dictionary<string, string>
@@ -90,7 +90,7 @@ public class PaymentService : IPaymentService
             {
                 Success = true,
                 ClientSecret = paymentIntent.ClientSecret,
-                AmountInCents = amountInCents
+                AmountInCents = amountInPaise
             };
         }
         catch (StripeException ex)

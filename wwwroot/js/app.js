@@ -412,7 +412,7 @@ function renderIssueList(matches) {
   if (!matches || matches.length === 0) {
     issueList.innerHTML = `
       <div class="perfect-banner">
-        <div class="perfect-icon">✓</div>
+        <div class="perfect-icon" aria-hidden="true"></div>
         <div class="perfect-text">
           <strong>No issues found</strong>
           <span>Your text looks great!</span>

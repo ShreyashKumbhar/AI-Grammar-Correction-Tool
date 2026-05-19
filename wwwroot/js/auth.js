@@ -81,8 +81,8 @@ function showNotification(message, type = 'info') {
 }
 
 // Format currency
-function formatCurrency(cents) {
-    return `$${(cents / 100).toFixed(2)}`;
+function formatCurrency(paise) {
+    return `₹${(paise / 100).toLocaleString('en-IN')}`;
 }
 
 // Format date

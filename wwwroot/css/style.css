@@ -152,30 +152,6 @@ header {
   color: var(--text-muted);
 }
 
-.header-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--gold-dim);
-  border: 1px solid rgba(200 169 110 / .25);
-  border-radius: 100px;
-  padding: 5px 14px;
-  font-size: .72rem;
-  font-weight: 500;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--gold);
-}
-
-.header-badge::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 8px var(--gold);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
 .header-actions {
   display: flex;
   align-items: center;
@@ -312,11 +288,6 @@ header {
 
 .input-card:has(textarea:disabled) {
   opacity: .72;
-}
-
-@keyframes pulse-dot {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: .5; transform: scale(.8); }
 }
 
 /* ── Hero section ─────────────────────────────────────────────────────────── */
@@ -924,14 +895,24 @@ textarea#inputText::-webkit-scrollbar-thumb { background: var(--border); border-
 }
 
 .perfect-icon {
-  width: 40px; height: 40px;
+  width: 40px;
+  height: 40px;
   background: rgba(68 197 166 / .15);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  font-size: 1.2rem;
+  position: relative;
+}
+
+.perfect-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 8px;
+  height: 14px;
+  border: solid var(--style);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -55%) rotate(45deg);
 }
 
 .perfect-text strong {

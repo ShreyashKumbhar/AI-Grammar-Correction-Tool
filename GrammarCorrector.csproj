@@ -8,20 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\plan.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\scenario-instructions.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\01-update-target-framework\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\02-update-aspnetcore-packages\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\03-update-identity-packages\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\04-fix-jwt-api-breaking-changes\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\05-fix-configuration-api-changes\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\06-fix-httpcontent-api-changes\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\07-verify-full-build-and-tests\progress-details.md" />
-    <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\upgrade-options.md" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />

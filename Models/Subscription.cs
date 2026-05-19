@@ -18,7 +18,7 @@ public class Subscription
     public int? MonthlyQuota { get; set; }
 
     /// <summary>
-    /// Monthly subscription price in USD cents (0 for Free tier).
+    /// Monthly subscription price in INR (0 for Free tier).
     /// </summary>
     public decimal MonthlyPrice { get; set; }
 

@@ -452,11 +452,12 @@ header {
   box-shadow: 0 0 20px rgba(200 169 110 / .1);
 }
 
-.benefit .icon {
-  font-size: 2.2rem;
-  margin-bottom: 14px;
+.benefit-marker {
   display: block;
-  min-height: 32px;
+  width: 28px;
+  height: 2px;
+  margin: 0 auto 16px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
 .benefit h3 {

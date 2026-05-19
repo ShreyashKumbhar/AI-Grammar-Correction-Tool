@@ -45,7 +45,7 @@ public class PaymentController : ControllerBase
                 Id = p.Id,
                 StripePaymentIntentId = p.StripePaymentIntentId,
                 AmountInCents = p.AmountInCents,
-                AmountFormatted = $"${(p.AmountInCents / 100m):F2}",
+                AmountFormatted = $"₹{(p.AmountInCents / 100m):N0}",
                 Status = p.Status,
                 SubscriptionTier = p.SubscriptionTier,
                 PaymentDate = p.PaymentDate,

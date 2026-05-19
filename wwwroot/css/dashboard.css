@@ -202,10 +202,6 @@ body::before {
   border-color: rgba(200 169 110 / .3);
 }
 
-.nav-item .icon {
-  font-size: 1.2rem;
-}
-
 .sidebar-footer {
   border-top: 1px solid var(--border);
   padding-top: 20px;
@@ -719,6 +715,22 @@ body::before {
   border-bottom: none;
 }
 
+.plan-card ul.plan-features li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.plan-card ul.plan-features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
 .payment-history {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -889,9 +901,6 @@ footer a:hover {
     font-size: .85rem;
   }
 
-  .nav-item .icon {
-    font-size: 1rem;
-  }
 }
 
 @media (max-width: 480px) {
